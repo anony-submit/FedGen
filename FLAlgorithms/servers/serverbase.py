@@ -78,13 +78,22 @@ class Server:
                 user.set_shared_parameters(self.model,mode=mode)
 
 
+    # def add_parameters(self, user, ratio, partial=False):
+    #     if partial:
+    #         for server_param, user_param in zip(self.model.get_shared_parameters(), user.model.get_shared_parameters()):
+    #             server_param.data = server_param.data + user_param.data.clone() * ratio
+    #     else:
+    #         for server_param, user_param in zip(self.model.parameters(), user.model.parameters()):
+    #             server_param.data = server_param.data + user_param.data.clone() * ratio
     def add_parameters(self, user, ratio, partial=False):
         if partial:
-            for server_param, user_param in zip(self.model.get_shared_parameters(), user.model.get_shared_parameters()):
-                server_param.data = server_param.data + user_param.data.clone() * ratio
+            for server_param, user_param in zip(
+                    self.model.get_shared_parameters(), user.model.get_shared_parameters()):
+                server_param.data = server_param.data + user_param.data.clone().to(server_param.device) * ratio
         else:
             for server_param, user_param in zip(self.model.parameters(), user.model.parameters()):
-                server_param.data = server_param.data + user_param.data.clone() * ratio
+                server_param.data = server_param.data + user_param.data.clone().to(server_param.device) * ratio
+
 
 
     def aggregate_parameters(self,partial=False):
@@ -128,7 +137,7 @@ class Server:
             list of selected clients objects
         '''
         if(num_users == len(self.users)):
-            print("All users are selected")
+            # print("All users are selected")
             return self.users
 
         num_users = min(num_users, len(self.users))
@@ -220,11 +229,21 @@ class Server:
         print("Average Global Accurancy = {:.4f}, Loss = {:.2f}.".format(test_acc, loss))
 
 
+    # def evaluate(self, save=True, selected=False):
+    #     # override evaluate function to log vae-loss.
+    #     test_ids, test_samples, test_accs, test_losses = self.test(selected=selected)
+    #     glob_acc = np.sum(test_accs)*1.0/np.sum(test_samples)
+    #     glob_loss = np.sum([x * y.detach() for (x, y) in zip(test_samples, test_losses)]).item() / np.sum(test_samples)
+    #     if save:
+    #         self.metrics['glob_acc'].append(glob_acc)
+    #         self.metrics['glob_loss'].append(glob_loss)
+    #     print("Average Global Accurancy = {:.4f}, Loss = {:.2f}.".format(glob_acc, glob_loss))
     def evaluate(self, save=True, selected=False):
-        # override evaluate function to log vae-loss.
         test_ids, test_samples, test_accs, test_losses = self.test(selected=selected)
-        glob_acc = np.sum(test_accs)*1.0/np.sum(test_samples)
-        glob_loss = np.sum([x * y.detach() for (x, y) in zip(test_samples, test_losses)]).item() / np.sum(test_samples)
+        glob_acc = np.sum(test_accs) * 1.0 / np.sum(test_samples)
+        weighted_losses = [(x * y.detach().cpu()).item() for (x, y) in zip(test_samples, test_losses)]
+        glob_loss = np.sum(weighted_losses) / np.sum(test_samples)
+
         if save:
             self.metrics['glob_acc'].append(glob_acc)
             self.metrics['glob_loss'].append(glob_loss)

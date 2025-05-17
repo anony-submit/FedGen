@@ -74,6 +74,45 @@ RUNCONFIGS = {
             'generative_beta': 10, 
             'weight_decay': 1e-2
         },
+        'fmnist': {
+            'ensemble_lr': 3e-4,
+            'ensemble_batch_size': 128,
+            'ensemble_epochs': 50,
+            'num_pretrain_iters': 20,
+            'ensemble_alpha': 1,
+            'ensemble_beta': 0,
+            'ensemble_eta': 1,
+            'unique_labels': 10,
+            'generative_alpha': 10,
+            'generative_beta': 10,
+            'weight_decay': 1e-2
+        },
+        'svhn': {
+            'ensemble_lr': 3e-4,
+            'ensemble_batch_size': 128,
+            'ensemble_epochs': 50,
+            'num_pretrain_iters': 20,
+            'ensemble_alpha': 1,
+            'ensemble_beta': 0,
+            'ensemble_eta': 1,
+            'unique_labels': 10,
+            'generative_alpha': 10,
+            'generative_beta': 10,
+            'weight_decay': 1e-2
+        },
 
+        'cifar10': {
+            'ensemble_lr': 3e-4,
+            'ensemble_batch_size': 128,
+            'ensemble_epochs': 50,
+            'num_pretrain_iters': 20,
+            'ensemble_alpha': 1,
+            'ensemble_beta': 0,
+            'ensemble_eta': 1,
+            'unique_labels': 10,
+            'generative_alpha': 10,
+            'generative_beta': 10,
+            'weight_decay': 1e-2
+        },
 }
 

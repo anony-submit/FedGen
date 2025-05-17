@@ -194,17 +194,22 @@ def read_user_data(index, data, dataset='', count_labels=False):
 
 
 def get_dataset_name(dataset):
-    dataset=dataset.lower()
-    passed_dataset=dataset.lower()
+    dataset = dataset.lower()
     if 'celeb' in dataset:
-        passed_dataset='celeb'
+        return 'celeb'
     elif 'emnist' in dataset:
-        passed_dataset='emnist'
-    elif 'mnist' in dataset:
-        passed_dataset='mnist'
+        return 'emnist'
+    elif 'fmnist' in dataset:
+        return 'fmnist'
+    elif 'mnist' in dataset and 'fmnist' not in dataset:
+        return 'mnist'
+    elif 'svhn' in dataset:
+        return 'svhn'
+    elif 'cifar10' in dataset:
+        return 'cifar10'
     else:
         raise ValueError('Unsupported dataset {}'.format(dataset))
-    return passed_dataset
+
 
 
 def create_generative_model(dataset, algorithm='', model='cnn', embedding=False):

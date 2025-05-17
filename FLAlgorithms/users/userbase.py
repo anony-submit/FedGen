@@ -46,7 +46,11 @@ class User:
         self.personalized_model_bar = copy.deepcopy(list(self.model.parameters()))
         self.prior_decoder = None
         self.prior_params = None
-
+        self.device = args.device
+      
+        self.model.to(self.device)
+  
+ 
         self.init_loss_fn()
         if use_adam:
             self.optimizer=torch.optim.Adam(
@@ -62,19 +66,30 @@ class User:
 
 
     def init_loss_fn(self):
-        self.loss=nn.NLLLoss()
+        self.loss = nn.CrossEntropyLoss()
         self.dist_loss = nn.MSELoss()
-        self.ensemble_loss=nn.KLDivLoss(reduction="batchmean")
+        self.ensemble_loss = nn.KLDivLoss(reduction="batchmean")
         self.ce_loss = nn.CrossEntropyLoss()
 
-    def set_parameters(self, model,beta=1):
+
+    # def set_parameters(self, model,beta=1):
+    #     for old_param, new_param, local_param in zip(self.model.parameters(), model.parameters(), self.local_model):
+    #         if beta == 1:
+    #             old_param.data = new_param.data.clone()
+    #             local_param.data = new_param.data.clone()
+    #         else:
+    #             old_param.data = beta * new_param.data.clone() + (1 - beta)  * old_param.data.clone()
+    #             local_param.data = beta * new_param.data.clone() + (1-beta) * local_param.data.clone()
+    def set_parameters(self, model, beta=1):
         for old_param, new_param, local_param in zip(self.model.parameters(), model.parameters(), self.local_model):
             if beta == 1:
-                old_param.data = new_param.data.clone()
-                local_param.data = new_param.data.clone()
+                old_param.data = new_param.data.clone().to(self.device)
+                local_param.data = new_param.data.clone().to(self.device)
             else:
-                old_param.data = beta * new_param.data.clone() + (1 - beta)  * old_param.data.clone()
-                local_param.data = beta * new_param.data.clone() + (1-beta) * local_param.data.clone()
+                updated_data = (beta * new_param.data + (1 - beta) * old_param.data).clone().to(self.device)
+                old_param.data = updated_data
+                local_param.data = updated_data.clone()
+
 
     def set_prior_decoder(self, model, beta=1):
         for new_param, local_param in zip(model.personal_layers, self.prior_decoder):
@@ -134,7 +149,12 @@ class User:
         test_acc = 0
         loss = 0
         for x, y in self.testloaderfull:
-            output = self.model(x)['output']
+            if not getattr(self.model, "is_cnn_input", False):
+                x = x.view(x.size(0), -1)  # only flatten if not CNN
+
+            x, y = x.to(self.device), y.to(self.device)
+
+            output = self.model(x)
             loss += self.loss(output, y)
             test_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
         return test_acc, loss, y.shape[0]
@@ -147,12 +167,12 @@ class User:
         loss = 0
         self.update_parameters(self.personalized_model_bar)
         for x, y in self.testloaderfull:
-            output = self.model(x)['output']
+            x, y = x.to(self.device), y.to(self.device)
+            if not getattr(self.model, "is_cnn_input", False):
+                x = x.view(x.size(0), -1)
+            output = self.model(x)
             loss += self.loss(output, y)
             test_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
-            #@loss += self.loss(output, y)
-            #print(self.id + ", Test Accuracy:", test_acc / y.shape[0] )
-            #print(self.id + ", Test Loss:", loss)
         self.update_parameters(self.local_model)
         return test_acc, y.shape[0], loss
 
